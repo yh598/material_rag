@@ -691,6 +691,17 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
 
 
+quick_prompt = st.chat_input("Ask demo question here...")
+if quick_prompt:
+    run_assistant_query(
+        prompt=quick_prompt,
+        backend_ok=backend_ok,
+        backend_status=backend_status,
+        backend_url=resolved_backend_url,
+        top_k=top_k,
+    )
+
+
 rag_materials = st.session_state.get("rag_recommendations", [])
 source_materials = rag_materials if rag_materials else MATERIALS
 effective_min_score = min_score if not rag_materials else 0
@@ -756,16 +767,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-quick_prompt = st.chat_input("Ask demo question here...")
-if quick_prompt:
-    run_assistant_query(
-        prompt=quick_prompt,
-        backend_ok=backend_ok,
-        backend_status=backend_status,
-        backend_url=resolved_backend_url,
-        top_k=top_k,
-    )
 
 if st.session_state.assistant_error:
     st.error(st.session_state.assistant_error)
