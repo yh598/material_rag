@@ -101,6 +101,23 @@ def _to_float(value: str | float | int | None) -> float | None:
         return None
 
 
+def _clean_field(value: object) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if text.lower() in {"null", "none", "nan", "na", "n/a"}:
+        return ""
+    return text
+
+
+def _pick_field(fields: dict, *keys: str, default: str = "") -> str:
+    for key in keys:
+        val = _clean_field(fields.get(key))
+        if val:
+            return val
+    return default
+
+
 def _weight_bucket(fields: dict) -> str:
     gsm = _to_float(fields.get("WEIGHT_GRAMS_PER_SQUARE_METER"))
     if gsm is not None:
@@ -170,28 +187,47 @@ def _recommendation_from_hit(hit: dict) -> dict:
     fields = hit.get("fields", {})
     row_id = int(hit.get("row_id", 0))
 
-    material_number = str(fields.get("PCX_MATL_NBR", "")).strip()
-    supplied_material_id = str(fields.get("SUPPLIED_MATERIAL_ID", "")).strip()
+    material_number = _pick_field(fields, "PCX_MATL_NBR")
+    supplied_material_id = _pick_field(fields, "SUPPLIED_MATERIAL_ID")
     rec_key = material_number or supplied_material_id or f"row{row_id}"
 
     name = (
-        fields.get("MATL_ITM_DESC")
-        or fields.get("SUPPLEMENTAL_MATERIAL_NM")
-        or fields.get("MATERIAL_FAMILY_NM")
-        or hit.get("material", "Material")
-    )
-    type_name = (
-        fields.get("MATERIAL_FAMILY_NM")
-        or fields.get("END_USE_NM")
+        _pick_field(fields, "MATL_ITM_DESC", "SUPPLEMENTAL_MATERIAL_NM", "MATERIAL_FAMILY_NM")
+        or _clean_field(hit.get("material"))
         or "Material"
     )
-    supplier = fields.get("SUPLR_LCTN_NM") or fields.get("VENDOR_CD") or "Unknown supplier"
-    sustainability = fields.get("SUSTAINABILITY_RANKING") or "Unranked"
+    type_name = (
+        _pick_field(fields, "MATERIAL_FAMILY_NM", "END_USE_NM")
+        or "Material"
+    )
+    supplier = _pick_field(fields, "SUPLR_LCTN_NM", "VENDOR_CD", default="Unknown supplier")
+    sustainability = _pick_field(fields, "SUSTAINABILITY_RANKING", default="Unranked")
     description = (
-        fields.get("MATERIAL_INTENT_DESCRIPTION")
-        or fields.get("MATERIAL_BENEFITS_NM")
-        or fields.get("MATL_COMMENT")
-        or hit.get("snippet", "")
+        _pick_field(fields, "MATERIAL_INTENT_DESCRIPTION", "MATERIAL_BENEFITS_NM", "MATL_COMMENT")
+        or _clean_field(hit.get("snippet"))
+    )
+    product_name = _pick_field(
+        fields,
+        "STYLE_NAME",
+        "PRODUCT_CLASS",
+        "PRODUCT_OFFERING_TEAM_NM",
+        default="Unknown Product",
+    )
+    product_code = _pick_field(
+        fields,
+        "PRODUCT_CD",
+        "STYLE_CD",
+        "PCX_MATL_NBR",
+        "SUPPLIED_MATERIAL_ID",
+        default="N/A",
+    )
+    target_consumer = _pick_field(fields, "CONSUMER_CONSTRUCT", "FOP", "SEGMENT", default="General")
+    season = _pick_field(
+        fields,
+        "BOM_SEASON_CODE",
+        "TARGET_SEASON",
+        "LATEST_PRICING_SEASON",
+        default="TBD",
     )
 
     return {
@@ -200,9 +236,13 @@ def _recommendation_from_hit(hit: dict) -> dict:
         "score": int(round(float(hit.get("score", 0.0)) * 100)),
         "name": str(name)[:180],
         "type": str(type_name)[:120],
-        "division": fields.get("SEGMENT") or "Performance",
-        "department": fields.get("DIMENSION") or fields.get("FOP") or "Running",
-        "category": fields.get("SILHOUETTE_TYPE_DESCRIPTION") or fields.get("END_USE_NM") or "General",
+        "product_name": str(product_name)[:180],
+        "product_code": str(product_code)[:80],
+        "target_consumer": str(target_consumer)[:80],
+        "season": str(season)[:60],
+        "division": _pick_field(fields, "SEGMENT", default="Performance"),
+        "department": _pick_field(fields, "DIMENSION", "FOP", default="Running"),
+        "category": _pick_field(fields, "SILHOUETTE_TYPE_DESCRIPTION", "END_USE_NM", default="General"),
         "supplier": str(supplier)[:180],
         "sustainability": str(sustainability)[:80],
         "cost": _format_cost(fields),
