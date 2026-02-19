@@ -488,14 +488,6 @@ def rationale_line(item: dict, matched_terms: list[str], query_text: str) -> str
 
 def run_assistant_query(prompt: str, backend_ok: bool, backend_status: str, backend_url: str, top_k: int) -> None:
     st.session_state.assistant_query = prompt
-    if not backend_ok:
-        st.session_state.assistant_error = backend_status
-        st.session_state.assistant_answer = ""
-        st.session_state.assistant_citations = []
-        st.session_state.rag_recommendations = []
-        st.session_state.assistant_mode = "error"
-        return
-
     answer, citations, recommendations, error, mode = query_backend(backend_url, prompt, top_k)
     st.session_state.assistant_answer = answer
     st.session_state.assistant_citations = citations
@@ -506,18 +498,31 @@ def run_assistant_query(prompt: str, backend_ok: bool, backend_status: str, back
 
 @st.cache_data(ttl=6, show_spinner=False)
 def backend_health(url: str) -> tuple[bool, str]:
-    try:
-        resp = requests.get(f"{url.rstrip('/')}/health", timeout=4)
-        resp.raise_for_status()
-        data = resp.json()
-        llm_configured = data.get("llm_configured")
-        if llm_configured is True:
-            return True, "Backend connected (LLM enabled)"
-        if llm_configured is False:
-            return True, "Backend connected (retrieval mode)"
-        return True, "Backend connected"
-    except Exception as exc:
-        return False, f"Backend unavailable: {exc}"
+    health_url = f"{url.rstrip('/')}/health"
+    last_timeout = False
+    for timeout_sec in (4, 12):
+        try:
+            resp = requests.get(health_url, timeout=timeout_sec)
+            resp.raise_for_status()
+            data = resp.json()
+            llm_configured = data.get("llm_configured")
+            if llm_configured is True:
+                return True, "Backend connected (LLM enabled)"
+            if llm_configured is False:
+                return True, "Backend connected (retrieval mode)"
+            return True, "Backend connected"
+        except requests.exceptions.Timeout:
+            last_timeout = True
+            continue
+        except Exception as exc:
+            return False, f"Backend unavailable: {exc}"
+
+    if last_timeout:
+        return (
+            False,
+            "Backend is waking up (cold start on free plan). Submit your question again in 30-60 seconds.",
+        )
+    return False, "Backend unavailable"
 
 
 def matches_filters(
