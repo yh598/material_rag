@@ -520,10 +520,18 @@ def backend_health(url: str) -> tuple[bool, str]:
         return False, f"Backend unavailable: {exc}"
 
 
-def matches_filters(item: dict, division: str, department: str, category: str, min_score: int) -> bool:
+def matches_filters(
+    item: dict,
+    division: str,
+    department: str,
+    category: str,
+    product_name: str,
+    min_score: int,
+) -> bool:
     item_division = str(item.get("division", ""))
     item_department = str(item.get("department", ""))
     item_category = str(item.get("category", ""))
+    item_product = str(item.get("product_name", ""))
     item_score = _safe_int(item.get("score"), 0)
 
     if division != "All" and item_division.lower() != division.lower():
@@ -531,6 +539,8 @@ def matches_filters(item: dict, division: str, department: str, category: str, m
     if department != "All" and item_department.lower() != department.lower():
         return False
     if category != "All" and item_category.lower() != category.lower():
+        return False
+    if product_name != "All" and item_product.lower() != product_name.lower():
         return False
     return item_score >= min_score
 
@@ -552,6 +562,38 @@ with st.sidebar:
     st.markdown('<div class="field-label">Category</div>', unsafe_allow_html=True)
     selected_category = st.selectbox("Category", categories, index=0, label_visibility="collapsed")
     min_score = st.slider("Min score", 60, 99, 80, label_visibility="collapsed")
+
+    filtered_for_products = [
+        m
+        for m in universe_materials
+        if (selected_division == "All" or str(m.get("division", "")).lower() == selected_division.lower())
+        and (selected_department == "All" or str(m.get("department", "")).lower() == selected_department.lower())
+        and (selected_category == "All" or str(m.get("category", "")).lower() == selected_category.lower())
+        and _safe_int(m.get("score", 0), 0) >= min_score
+    ]
+    product_names = sorted(
+        {
+            str(m.get("product_name", "")).strip()
+            for m in filtered_for_products
+            if str(m.get("product_name", "")).strip()
+        }
+    )
+    if not product_names:
+        product_names = sorted(
+            {
+                str(m.get("product_name", "")).strip()
+                for m in universe_materials
+                if str(m.get("product_name", "")).strip()
+            }
+        )
+
+    st.markdown('<div class="field-label">Product</div>', unsafe_allow_html=True)
+    selected_product = st.selectbox(
+        "Product",
+        ["All"] + product_names,
+        index=0,
+        label_visibility="collapsed",
+    )
     max_cards = st.slider("Max cards", 12, 180, 36, 12, label_visibility="collapsed")
     st.caption(f"Minimum Score: {min_score}")
     st.caption(f"Cards Shown: {max_cards}")
@@ -603,7 +645,8 @@ with st.sidebar:
     if st.button("Generate recommendations", use_container_width=True):
         prompt = assistant_prompt.strip() or (
             f"Recommend materials for division={selected_division}, "
-            f"department={selected_department}, category={selected_category}. Cite row_id values."
+            f"department={selected_department}, category={selected_category}, "
+            f"product={selected_product}. Cite row_id values."
         )
         run_assistant_query(
             prompt=prompt,
@@ -635,7 +678,14 @@ effective_min_score = min_score if not rag_materials else 0
 filtered = [
     m
     for m in source_materials
-    if matches_filters(m, selected_division, selected_department, selected_category, effective_min_score)
+    if matches_filters(
+        m,
+        selected_division,
+        selected_department,
+        selected_category,
+        selected_product,
+        effective_min_score,
+    )
 ]
 rag_filter_fallback = False
 if rag_materials and not filtered:
@@ -645,7 +695,14 @@ if rag_materials and not filtered:
     filtered = [
         m
         for m in source_materials
-        if matches_filters(m, selected_division, selected_department, selected_category, effective_min_score)
+        if matches_filters(
+            m,
+            selected_division,
+            selected_department,
+            selected_category,
+            selected_product,
+            effective_min_score,
+        )
     ]
 
 query_text = st.session_state.get("assistant_query", "").strip()
