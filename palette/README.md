@@ -1,59 +1,107 @@
-# Apparel Material Palette RAG (backend + UI)
+# Apparel Material Palette (Backend + UI)
 
-This repo builds a lightweight Retrieval Augmented Generation (RAG) app over an apparel BOM / materials dataset.
-It includes:
-- FastAPI backend with `/chat` endpoint
-- Simple retriever (TF-IDF cosine similarity) over key material fields
-- Streamlit UI chat app that calls the backend
+This project provides:
+- `FastAPI` backend for retrieval and AI response generation (`/chat`)
+- `Streamlit` UI styled as a materials recommendation dashboard
+- Synthetic material recommendation cards generated from:
+  - `materials.json`
+  - `products.json`
+  - `product_materials.json`
+  - optional prebuilt cache `synthetic_materials_large.json`
 
-## Quick start
+## Generate a large synthetic dataset (optional)
 
-1) Create a virtual env and install deps
+Generate 5,000 rows:
 
-```bash
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+```powershell
+python scripts/generate_large_synthetic_dataset.py --size 5000 --output synthetic_materials_large.json
 ```
 
-2) Put secrets in `.env`
+If `synthetic_materials_large.json` exists in repo root, the UI loads it automatically.
 
-Copy `.env.example` to `.env` and set:
-- AI_GATEWAY_BASE_URL
-- AI_GATEWAY_API_KEY
-- AI_GATEWAY_MODEL
+## One-command local startup (Windows PowerShell)
 
-IMPORTANT: do not commit `.env`.
-
-3) Place the CSV
-
-Set `PALETTE_CSV_PATH` in `.env` to the dataset path.
-If you keep the CSV in the repo root, use:
-
-`PALETTE_CSV_PATH=apparel_material_cluster_sample.csv`
-
-4) Run the backend
-
-```bash
-cd backend
-uvicorn app:app --reload --port 8000
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_all.ps1
 ```
 
-5) Run the UI (new terminal)
+This command:
+- Creates `.venv` if missing
+- Installs dependencies
+- Stops prior app processes started by this repo
+- Starts backend and UI
+- Waits for health checks
 
-```bash
-cd ui
-streamlit run app.py --server.port 8501
+Open:
+- UI: `http://127.0.0.1:8501`
+- Backend health: `http://127.0.0.1:8000/health`
+
+Stop both:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/stop_all.ps1
 ```
 
-Open the Streamlit URL printed in your terminal.
+## Share with others (Render deployment)
 
-## What is indexed
+This repo includes a Render Blueprint file: `render.yaml`.
 
-We build one "document" per row using a handful of columns (material name, item description, content, benefits, supplier, etc).
-You can add or remove fields in `backend/rag/index.py`.
+Steps:
+1. Push this repo to GitHub.
+2. In Render, click `New +` -> `Blueprint`.
+3. Select your repo and deploy.
+4. In Render service settings for `palette-backend`, set secret env values:
+   - `AI_GATEWAY_BASE_URL`
+   - `AI_GATEWAY_API_KEY`
+   - optionally `AI_GATEWAY_MODEL`
+5. Open the deployed `palette-ui` URL and share it.
 
-## Security notes
+Notes:
+- UI reads backend URL from Render service discovery (`BACKEND_URL` in `render.yaml`).
+- If AI gateway secrets are missing, backend still responds in retrieval-only fallback mode.
 
-- Keep your API key in environment variables or `.env`, never in source control.
-- If you received a key in a file, load it at runtime and avoid pasting it into chat logs.
+## One-command Docker startup
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_all.ps1 -Docker
+```
+
+Stop Docker stack:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/stop_all.ps1 -Docker
+```
+
+## Environment variables
+
+Copy `.env.example` to `.env` and update values as needed.
+
+Required for AI generation:
+- `AI_GATEWAY_BASE_URL`
+- `AI_GATEWAY_API_KEY`
+- `AI_GATEWAY_MODEL`
+
+Used by backend retrieval:
+- `PALETTE_CSV_PATH` (defaults to `apparel_material_cluster_sample.csv`)
+
+Optional for UI:
+- `BACKEND_URL` (defaults to `http://127.0.0.1:8000`)
+- `SYNTHETIC_TARGET_SIZE` (defaults to `3000` when generating in memory)
+- `SYNTHETIC_DATA_PATH` (path to prebuilt synthetic JSON file)
+
+## LLM fallback behavior
+
+If AI gateway settings are missing or unavailable, `/chat` still works in retrieval mode and returns:
+- ranked citations from the indexed CSV
+- a fallback summary without LLM generation
+
+## Project layout
+
+- `backend/app.py`: API routes and chat orchestration
+- `backend/rag/index.py`: TF-IDF retrieval index
+- `backend/llm/client.py`: OpenAI-compatible gateway client
+- `ui/app.py`: recommendation dashboard + backend integration
+- `scripts/generate_large_synthetic_dataset.py`: large synthetic dataset generator
+- `scripts/run_all.ps1`: local or Docker startup
+- `scripts/stop_all.ps1`: local or Docker shutdown
+- `Dockerfile.backend`, `Dockerfile.ui`, `docker-compose.yml`: container deployment

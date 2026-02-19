@@ -1,0 +1,104 @@
+[
+  {
+    "id": 1,
+    "code": "PRUN-DT-M01",
+    "name": "Performance Running Daily Trainer M",
+    "division": "Performance",
+    "department": "Running",
+    "category": "Daily Trainer",
+    "targetConsumer": "Men",
+    "season": "SP25"
+  },
+  {
+    "id": 2,
+    "code": "PRUN-DT-W01",
+    "name": "Performance Running Daily Trainer W",
+    "division": "Performance",
+    "department": "Running",
+    "category": "Daily Trainer",
+    "targetConsumer": "Women",
+    "season": "SP25"
+  },
+  {
+    "id": 3,
+    "code": "PRUN-RC-U01",
+    "name": "Performance Racing Super Shoe",
+    "division": "Performance",
+    "department": "Running",
+    "category": "Racing",
+    "targetConsumer": "Unisex",
+    "season": "FA25"
+  },
+  {
+    "id": 4,
+    "code": "PBASK-AC-M01",
+    "name": "Performance All-Court Basketball M",
+    "division": "Performance",
+    "department": "Basketball",
+    "category": "All Court",
+    "targetConsumer": "Men",
+    "season": "HO25"
+  },
+  {
+    "id": 5,
+    "code": "PBASK-AC-W01",
+    "name": "Performance All-Court Basketball W",
+    "division": "Performance",
+    "department": "Basketball",
+    "category": "All Court",
+    "targetConsumer": "Women",
+    "season": "HO25"
+  },
+  {
+    "id": 6,
+    "code": "LIFE-CL-LT01",
+    "name": "Lifestyle Classic Low-Top",
+    "division": "Lifestyle",
+    "department": "Classics",
+    "category": "Low-Top Sneaker",
+    "targetConsumer": "Unisex",
+    "season": "FA25"
+  },
+  {
+    "id": 7,
+    "code": "LIFE-CL-HT01",
+    "name": "Lifestyle Heritage High-Top",
+    "division": "Lifestyle",
+    "department": "Classics",
+    "category": "High-Top Sneaker",
+    "targetConsumer": "Unisex",
+    "season": "FA25"
+  },
+  {
+    "id": 8,
+    "code": "LIFE-STR-LT01",
+    "name": "Lifestyle Street Low-Top",
+    "division": "Lifestyle",
+    "department": "Street",
+    "category": "Skate / Street",
+    "targetConsumer": "Unisex",
+    "season": "SP25"
+  },
+  {
+    "id": 9,
+    "code": "KIDS-RUN-DT01",
+    "name": "Kids Running Trainer",
+    "division": "Kids",
+    "department": "Running",
+    "category": "Kids Trainer",
+    "targetConsumer": "Kids",
+    "season": "SP25"
+  },
+  {
+    "id": 10,
+    "code": "OUTD-TR-HK01",
+    "name": "Outdoor Trail Hiker",
+    "division": "Outdoor",
+    "department": "Trail",
+    "category": "Light Hiker",
+    "targetConsumer": "Unisex",
+    "season": "FA25"
+  }
+]
+
+

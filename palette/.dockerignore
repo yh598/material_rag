@@ -1,0 +1,12 @@
+.venv
+.git
+.gitignore
+.env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pid
+ui/__pycache__
+backend/__pycache__
+scripts/*.pid

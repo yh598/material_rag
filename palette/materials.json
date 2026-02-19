@@ -1,0 +1,562 @@
+[
+  {
+    "id": 1,
+    "code": "UPR-EMESH-01",
+    "name": "Engineered Mesh Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "B",
+    "costTier": "Mid",
+    "performanceFocus": "Breathability",
+    "cost": 3.2
+  },
+  {
+    "id": 2,
+    "code": "UPR-EMESH-02",
+    "name": "Engineered Mesh Upper B",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "A",
+    "costTier": "Mid",
+    "performanceFocus": "Lightweight",
+    "cost": 3.5
+  },
+  {
+    "id": 3,
+    "code": "UPR-VPMESH-01",
+    "name": "Vapor Mesh Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "B",
+    "costTier": "High",
+    "performanceFocus": "Race-Day Lightweight",
+    "cost": 5.8
+  },
+  {
+    "id": 4,
+    "code": "UPR-KNIT-01",
+    "name": "Engineered Knit Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "A",
+    "costTier": "High",
+    "performanceFocus": "Adaptive Fit",
+    "cost": 5.4
+  },
+  {
+    "id": 5,
+    "code": "UPR-JACQ-01",
+    "name": "Woven Jacquard Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "B",
+    "costTier": "Mid",
+    "performanceFocus": "Support",
+    "cost": 3.7
+  },
+  {
+    "id": 6,
+    "code": "UPR-LEA-01",
+    "name": "Full-Grain Leather Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "C",
+    "costTier": "High",
+    "performanceFocus": "Premium Look",
+    "cost": 6.1
+  },
+  {
+    "id": 7,
+    "code": "UPR-CAN-01",
+    "name": "Canvas Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "A",
+    "costTier": "Low",
+    "performanceFocus": "Casual Style",
+    "cost": 2.1
+  },
+  {
+    "id": 8,
+    "code": "UPR-RPET-01",
+    "name": "Recycled Knit Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "A",
+    "costTier": "Mid",
+    "performanceFocus": "Sustainable Knit",
+    "cost": 3.4
+  },
+  {
+    "id": 9,
+    "code": "UPR-MONO-01",
+    "name": "Monomesh Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "B",
+    "costTier": "Mid",
+    "performanceFocus": "Breathable Support",
+    "cost": 3.0
+  },
+  {
+    "id": 10,
+    "code": "UPR-NBCK-01",
+    "name": "Nubuck Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "C",
+    "costTier": "High",
+    "performanceFocus": "Lifestyle Premium",
+    "cost": 6.0
+  },
+
+  {
+    "id": 11,
+    "code": "LIN-RPET-01",
+    "name": "Recycled Polyester Lining A",
+    "family": "Lining",
+    "usageArea": "Lining",
+    "sustainabilityGrade": "A",
+    "costTier": "Mid",
+    "performanceFocus": "Moisture Management",
+    "cost": 1.8
+  },
+  {
+    "id": 12,
+    "code": "LIN-MESH-01",
+    "name": "Soft Mesh Lining A",
+    "family": "Lining",
+    "usageArea": "Lining",
+    "sustainabilityGrade": "B",
+    "costTier": "Low",
+    "performanceFocus": "Comfort",
+    "cost": 1.2
+  },
+  {
+    "id": 13,
+    "code": "LIN-FLEECE1",
+    "name": "Fleece Lining A",
+    "family": "Lining",
+    "usageArea": "Lining",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Warmth",
+    "cost": 2.3
+  },
+  {
+    "id": 14,
+    "code": "LIN-COOL-01",
+    "name": "Cooling Yarn Lining A",
+    "family": "Lining",
+    "usageArea": "Lining",
+    "sustainabilityGrade": "B",
+    "costTier": "High",
+    "performanceFocus": "Cooling",
+    "cost": 3.9
+  },
+  {
+    "id": 15,
+    "code": "LIN-BAM-01",
+    "name": "Bamboo Blend Lining A",
+    "family": "Lining",
+    "usageArea": "Lining",
+    "sustainabilityGrade": "A",
+    "costTier": "Mid",
+    "performanceFocus": "Natural Feel",
+    "cost": 2.5
+  },
+
+  {
+    "id": 16,
+    "code": "MID-EVA-01",
+    "name": "High-Rebound EVA Foam A",
+    "family": "Midsole",
+    "usageArea": "Midsole",
+    "sustainabilityGrade": "B",
+    "costTier": "Mid",
+    "performanceFocus": "Cushioning",
+    "cost": 3.0
+  },
+  {
+    "id": 17,
+    "code": "MID-EVA-REC1",
+    "name": "Recycled EVA Blend A",
+    "family": "Midsole",
+    "usageArea": "Midsole",
+    "sustainabilityGrade": "A",
+    "costTier": "Mid",
+    "performanceFocus": "Sustainable Cushioning",
+    "cost": 3.3
+  },
+  {
+    "id": 18,
+    "code": "MID-SUPF-01",
+    "name": "Supercritical Foam A",
+    "family": "Midsole",
+    "usageArea": "Midsole",
+    "sustainabilityGrade": "B",
+    "costTier": "High",
+    "performanceFocus": "Energy Return",
+    "cost": 5.2
+  },
+  {
+    "id": 19,
+    "code": "MID-PEBAX-01",
+    "name": "Pebax Plate A",
+    "family": "Midsole Plate",
+    "usageArea": "Midsole",
+    "sustainabilityGrade": "C",
+    "costTier": "High",
+    "performanceFocus": "Propulsion",
+    "cost": 5.7
+  },
+  {
+    "id": 20,
+    "code": "MID-CTN-01",
+    "name": "Compression Molded EVA A",
+    "family": "Midsole",
+    "usageArea": "Midsole",
+    "sustainabilityGrade": "B",
+    "costTier": "Low",
+    "performanceFocus": "Stability",
+    "cost": 2.6
+  },
+
+  {
+    "id": 21,
+    "code": "OUT-CRB-01",
+    "name": "Carbon Rubber Outsole A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Abrasion Resistance",
+    "cost": 3.1
+  },
+  {
+    "id": 22,
+    "code": "OUT-BRB-01",
+    "name": "Blown Rubber Outsole A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "B",
+    "costTier": "Mid",
+    "performanceFocus": "Cushioned Ride",
+    "cost": 3.0
+  },
+  {
+    "id": 23,
+    "code": "OUT-TRAIL-01",
+    "name": "Trail Lug Rubber A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Off-Road Traction",
+    "cost": 3.4
+  },
+  {
+    "id": 24,
+    "code": "OUT-INDR-01",
+    "name": "Indoor Court Rubber A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Court Grip",
+    "cost": 3.2
+  },
+  {
+    "id": 25,
+    "code": "OUT-VULC-01",
+    "name": "Vulcanized Rubber Cupsole A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "C",
+    "costTier": "Low",
+    "performanceFocus": "Classic Feel",
+    "cost": 2.4
+  },
+
+  {
+    "id": 26,
+    "code": "INS-PU-01",
+    "name": "PU Foam Insole A",
+    "family": "Insole",
+    "usageArea": "Insole",
+    "sustainabilityGrade": "B",
+    "costTier": "Low",
+    "performanceFocus": "Step-In Comfort",
+    "cost": 1.7
+  },
+  {
+    "id": 27,
+    "code": "INS-MEM-01",
+    "name": "Memory Foam Insole A",
+    "family": "Insole",
+    "usageArea": "Insole",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Cushioned Feel",
+    "cost": 2.5
+  },
+  {
+    "id": 28,
+    "code": "INS-CORK-01",
+    "name": "Cork Insole A",
+    "family": "Insole",
+    "usageArea": "Insole",
+    "sustainabilityGrade": "A",
+    "costTier": "Mid",
+    "performanceFocus": "Sustainable Comfort",
+    "cost": 2.8
+  },
+  {
+    "id": 29,
+    "code": "INS-GEL-01",
+    "name": "Gel Heel Pad Insole A",
+    "family": "Insole",
+    "usageArea": "Insole",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Impact Protection",
+    "cost": 2.9
+  },
+  {
+    "id": 30,
+    "code": "INS-EVA-01",
+    "name": "EVA Insole Insert A",
+    "family": "Insole",
+    "usageArea": "Insole",
+    "sustainabilityGrade": "B",
+    "costTier": "Low",
+    "performanceFocus": "Lightweight Support",
+    "cost": 1.9
+  },
+
+  {
+    "id": 31,
+    "code": "RF-TPO-01",
+    "name": "TPU Heel Counter A",
+    "family": "Reinforcement",
+    "usageArea": "Rearfoot",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Heel Stability",
+    "cost": 2.2
+  },
+  {
+    "id": 32,
+    "code": "RF-RAND-01",
+    "name": "Rubberized Toe Rand A",
+    "family": "Reinforcement",
+    "usageArea": "Toe",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Toe Protection",
+    "cost": 2.0
+  },
+  {
+    "id": 33,
+    "code": "RF-SADDLE1",
+    "name": "Midfoot Saddle Overlay A",
+    "family": "Reinforcement",
+    "usageArea": "Midfoot",
+    "sustainabilityGrade": "B",
+    "costTier": "Mid",
+    "performanceFocus": "Support",
+    "cost": 2.1
+  },
+  {
+    "id": 34,
+    "code": "RF-EYESTAY1",
+    "name": "Eyestay Reinforcement A",
+    "family": "Reinforcement",
+    "usageArea": "Eyestay",
+    "sustainabilityGrade": "B",
+    "costTier": "Low",
+    "performanceFocus": "Lace Durability",
+    "cost": 1.3
+  },
+  {
+    "id": 35,
+    "code": "RF-TOE-01",
+    "name": "TPU Toe Cap A",
+    "family": "Reinforcement",
+    "usageArea": "Toe",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Protection",
+    "cost": 2.4
+  },
+
+  {
+    "id": 36,
+    "code": "LACE-POLY-01",
+    "name": "Polyester Lace A",
+    "family": "Lace",
+    "usageArea": "Lacing",
+    "sustainabilityGrade": "B",
+    "costTier": "Low",
+    "performanceFocus": "Standard",
+    "cost": 0.8
+  },
+  {
+    "id": 37,
+    "code": "LACE-RPET-01",
+    "name": "Recycled Lace A",
+    "family": "Lace",
+    "usageArea": "Lacing",
+    "sustainabilityGrade": "A",
+    "costTier": "Mid",
+    "performanceFocus": "Sustainable",
+    "cost": 1.4
+  },
+  {
+    "id": 38,
+    "code": "LACE-FLAT-01",
+    "name": "Flat Lace A",
+    "family": "Lace",
+    "usageArea": "Lacing",
+    "sustainabilityGrade": "B",
+    "costTier": "Low",
+    "performanceFocus": "Classic Look",
+    "cost": 0.9
+  },
+  {
+    "id": 39,
+    "code": "LACE-ELAS-01",
+    "name": "Elastic Lace A",
+    "family": "Lace",
+    "usageArea": "Lacing",
+    "sustainabilityGrade": "B",
+    "costTier": "Mid",
+    "performanceFocus": "Kids Ease",
+    "cost": 1.6
+  },
+  {
+    "id": 40,
+    "code": "LACE-LOCK-01",
+    "name": "Lace Lock System A",
+    "family": "Lace",
+    "usageArea": "Lacing",
+    "sustainabilityGrade": "B",
+    "costTier": "High",
+    "performanceFocus": "Quick Adjust",
+    "cost": 2.7
+  },
+
+  {
+    "id": 41,
+    "code": "UPR-FUSE-01",
+    "name": "Fused Film Upper Overlay A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "B",
+    "costTier": "Mid",
+    "performanceFocus": "Seam Reduction",
+    "cost": 2.3
+  },
+  {
+    "id": 42,
+    "code": "UPR-TPU-01",
+    "name": "TPU Yarn Woven Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "B",
+    "costTier": "High",
+    "performanceFocus": "Lateral Support",
+    "cost": 4.1
+  },
+  {
+    "id": 43,
+    "code": "OUT-GUM-01",
+    "name": "Gum Rubber Outsole A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "C",
+    "costTier": "Low",
+    "performanceFocus": "Lifestyle Grip",
+    "cost": 2.0
+  },
+  {
+    "id": 44,
+    "code": "OUT-HRB-01",
+    "name": "High Rebound Rubber A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "C",
+    "costTier": "High",
+    "performanceFocus": "Bounce",
+    "cost": 4.5
+  },
+  {
+    "id": 45,
+    "code": "OUT-WET-01",
+    "name": "Wet-Weather Compound A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "C",
+    "costTier": "High",
+    "performanceFocus": "Wet Grip",
+    "cost": 4.8
+  },
+
+  {
+    "id": 46,
+    "code": "MID-PEBAF-01",
+    "name": "Pebax Foam Blend A",
+    "family": "Midsole",
+    "usageArea": "Midsole",
+    "sustainabilityGrade": "B",
+    "costTier": "High",
+    "performanceFocus": "Race Performance",
+    "cost": 5.6
+  },
+  {
+    "id": 47,
+    "code": "OUT-RCK-01",
+    "name": "Rock Plate Insert A",
+    "family": "Outsole",
+    "usageArea": "Outsole",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Trail Protection",
+    "cost": 3.6
+  },
+  {
+    "id": 48,
+    "code": "INS-ORTHO-01",
+    "name": "Ortholite-Style Insole A",
+    "family": "Insole",
+    "usageArea": "Insole",
+    "sustainabilityGrade": "A",
+    "costTier": "Mid",
+    "performanceFocus": "Antimicrobial",
+    "cost": 2.6
+  },
+  {
+    "id": 49,
+    "code": "LIN-TEXT-01",
+    "name": "Textile Lining A",
+    "family": "Lining",
+    "usageArea": "Lining",
+    "sustainabilityGrade": "B",
+    "costTier": "Low",
+    "performanceFocus": "Cost Efficiency",
+    "cost": 1.1
+  },
+  {
+    "id": 50,
+    "code": "UPR-SUED-01",
+    "name": "Split Suede Upper A",
+    "family": "Upper",
+    "usageArea": "Upper",
+    "sustainabilityGrade": "C",
+    "costTier": "Mid",
+    "performanceFocus": "Lifestyle Grip",
+    "cost": 2.2
+  }
+]
+
+

@@ -21,6 +21,25 @@ DEFAULT_TEXT_FIELDS = [
     "SUPPLEMENTAL_MATERIAL_NM",
     "MATL_COMMENT",
     "SUPLD_MATL_COMMENT",
+    # Business/merchandising context
+    "SEGMENT",
+    "DIMENSION",
+    "FOP",
+    "SILHOUETTE_TYPE_DESCRIPTION",
+    "END_USE_NM",
+    "SUPLR_LCTN_NM",
+    "VENDOR_CD",
+    # Cost/pricing context
+    "PRICE_UOM",
+    "PRICE_PER_UOM",
+    "LATEST_PRICE_PER_UOM",
+    "PRICE_PER_LY",
+    "PRICE_PER_KG",
+    "LATEST_PRICE_UOM",
+    # Sustainability context
+    "SUSTAINABILITY_RANKING",
+    "SUSTAINABILITY_RANKING_DESCRIPTION",
+    "CO2_EQUIVALENCY_PER_KG",
     # Optional yarn composition fields
     "YARN_1_MATERIAL_CONTENT",
     "YARN_2_MATERIAL_CONTENT",
@@ -33,6 +52,32 @@ DEFAULT_MATERIAL_LABEL_FIELDS = [
     "MATERIAL_FAMILY_NM",
     "PCX_MATL_NBR",
     "SUPPLIED_MATERIAL_ID",
+]
+
+RECOMMENDATION_FIELDS = [
+    "PCX_MATL_NBR",
+    "SUPPLIED_MATERIAL_ID",
+    "MATL_ITM_DESC",
+    "MATERIAL_FAMILY_NM",
+    "SUPPLEMENTAL_MATERIAL_NM",
+    "MATERIAL_BENEFITS_NM",
+    "MATERIAL_INTENT_DESCRIPTION",
+    "MATERIAL_CONTENT",
+    "SUPLR_LCTN_NM",
+    "VENDOR_CD",
+    "SUSTAINABILITY_RANKING",
+    "SUSTAINABILITY_RANKING_DESCRIPTION",
+    "WEIGHT_GRAMS_PER_SQUARE_METER",
+    "PRICE_PER_UOM",
+    "LATEST_PRICE_PER_UOM",
+    "PRICE_UOM",
+    "SEGMENT",
+    "DIMENSION",
+    "FOP",
+    "SILHOUETTE_TYPE_DESCRIPTION",
+    "END_USE_NM",
+    "MATL_COMMENT",
+    "SUPLD_MATL_COMMENT",
 ]
 
 
@@ -101,11 +146,16 @@ class PaletteIndex:
             row = self.df.iloc[int(i)]
             full = row["_doc_text"]
             snippet = full[:280].replace("\n", " ")
+            fields = {}
+            for f in RECOMMENDATION_FIELDS:
+                if f in self.df.columns:
+                    fields[f] = _safe_str(row.get(f))
             results.append({
                 "row_id": int(i),
                 "score": float(sims[int(i)]),
                 "material": self._material_label(row),
                 "snippet": snippet,
                 "fulltext": full,
+                "fields": fields,
             })
         return results
