@@ -700,6 +700,7 @@ if quick_prompt:
         backend_url=resolved_backend_url,
         top_k=top_k,
     )
+    st.rerun()
 
 
 rag_materials = st.session_state.get("rag_recommendations", [])
