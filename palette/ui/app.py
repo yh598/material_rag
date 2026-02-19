@@ -7,6 +7,17 @@ import requests
 import streamlit as st
 from dotenv import load_dotenv
 
+try:
+    from scripts.generate_large_synthetic_dataset import (
+        all_filter_combos,
+        build_dataset as build_synthetic_dataset,
+        rows_have_full_combo_coverage,
+    )
+except Exception:
+    all_filter_combos = None
+    build_synthetic_dataset = None
+    rows_have_full_combo_coverage = None
+
 load_dotenv()
 
 st.set_page_config(page_title="Materials Recommendation", layout="wide")
@@ -172,171 +183,65 @@ def _unit_for_family(family: str) -> str:
 @st.cache_data(show_spinner=False)
 def build_synthetic_materials() -> list[dict]:
     root = Path(__file__).resolve().parent.parent
+    default_cached = root / "synthetic_materials_large.json"
+    target_size = _safe_int(os.getenv("SYNTHETIC_TARGET_SIZE", "12000"), 12000)
+    target_size = max(300, target_size)
+    min_per_combo = _safe_int(os.getenv("SYNTHETIC_MIN_PER_COMBO", "6"), 6)
+    min_per_combo = max(1, min_per_combo)
 
+    expected_combos = []
+    try:
+        products = _read_json(root / "products.json")
+        if callable(all_filter_combos):
+            expected_combos = all_filter_combos(products)
+    except Exception:
+        expected_combos = []
+
+    def cache_is_valid(rows: list[dict]) -> bool:
+        if not isinstance(rows, list) or not rows:
+            return False
+        first = rows[0] if isinstance(rows[0], dict) else {}
+        required = {"id", "name", "division", "department", "category", "score"}
+        if not required.issubset(set(first.keys())):
+            return False
+        if expected_combos and callable(rows_have_full_combo_coverage):
+            return rows_have_full_combo_coverage(rows, expected_combos)
+        return True
+
+    candidates = []
     env_data_path = os.getenv("SYNTHETIC_DATA_PATH", "").strip()
     if env_data_path:
         candidate = Path(env_data_path)
         if not candidate.is_absolute():
             candidate = root / candidate
+        candidates.append(candidate)
+    candidates.append(default_cached)
+
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
         try:
             cached_rows = _read_json(candidate)
-            if isinstance(cached_rows, list) and cached_rows:
+            if cache_is_valid(cached_rows):
                 return cached_rows
         except Exception:
-            pass
-
-    default_cached = root / "synthetic_materials_large.json"
-    if default_cached.exists():
-        try:
-            cached_rows = _read_json(default_cached)
-            if isinstance(cached_rows, list) and cached_rows:
-                return cached_rows
-        except Exception:
-            pass
+            continue
 
     try:
-        materials = _read_json(root / "materials.json")
-        products = _read_json(root / "products.json")
-        links = _read_json(root / "product_materials.json")
+        if not callable(build_synthetic_dataset):
+            return FALLBACK_MATERIALS
+        rows = build_synthetic_dataset(root=root, target_size=target_size, min_per_combo=min_per_combo)
+        if cache_is_valid(rows):
+            try:
+                with default_cached.open("w", encoding="utf-8") as f:
+                    json.dump(rows, f, indent=2)
+            except Exception:
+                pass
+            return rows
     except Exception:
-        return FALLBACK_MATERIALS
+        pass
 
-    target_size = _safe_int(os.getenv("SYNTHETIC_TARGET_SIZE", "3000"), 3000)
-    target_size = max(300, target_size)
-
-    products_by_id = {int(p["id"]): p for p in products}
-    materials_by_id = {int(m["id"]): m for m in materials}
-
-    suppliers = [
-        "AeroComposite",
-        "TextilePro Inc.",
-        "CushionTech Ltd.",
-        "GreenWeave Labs",
-        "PrimeFoam Systems",
-        "Velocity Materials",
-        "EcoPolymers",
-    ]
-    strength_by_focus = {
-        "Breathability": "Flexible",
-        "Lightweight": "Flexible",
-        "Race-Day Lightweight": "Rigid",
-        "Adaptive Fit": "Flexible",
-        "Support": "Stable",
-        "Premium Look": "Stable",
-        "Casual Style": "Comfort",
-        "Sustainable Knit": "Flexible",
-        "Breathable Support": "Stable",
-        "Lifestyle Premium": "Stable",
-        "Moisture Management": "Comfort",
-        "Comfort": "Comfort",
-        "Warmth": "Comfort",
-        "Cooling": "Flexible",
-        "Natural Feel": "Comfort",
-        "Cushioning": "Stable",
-        "Sustainable Cushioning": "Stable",
-        "Energy Return": "Durable",
-        "Propulsion": "Rigid",
-        "Stability": "Stable",
-        "Abrasion Resistance": "Durable",
-        "Off-Road Traction": "Durable",
-        "Court Grip": "Durable",
-        "Impact Protection": "Durable",
-        "Trail Protection": "Durable",
-    }
-    durability_by_family = {
-        "Upper": "Medium",
-        "Lining": "Medium",
-        "Midsole": "High",
-        "Midsole Plate": "High",
-        "Outsole": "High",
-        "Insole": "Medium",
-        "Reinforcement": "High",
-        "Lace": "Medium",
-    }
-
-    generated = []
-    seen_ids = set()
-
-    def add_record(product: dict, material: dict, role: str, score_float: float, variant: str) -> None:
-        product_id = _safe_int(product.get("id"))
-        material_id = _safe_int(material.get("id"))
-        seed = (product_id * 997) + (material_id * 389) + sum(ord(c) for c in variant)
-        focus = material.get("performanceFocus", "Balanced")
-        family = material.get("family", "Material")
-        name = material.get("name", "Synthetic Material")
-        base_cost = _safe_float(material.get("cost"), 1.0)
-        adjusted_cost = base_cost * (0.92 + ((seed % 19) * 0.01))
-        score = int(round(max(0.60, min(0.99, score_float)) * 100))
-
-        lower_focus = str(focus).lower()
-        if "light" in lower_focus or "race" in lower_focus:
-            weight = "Lightweight"
-        elif "protection" in lower_focus or "stability" in lower_focus:
-            weight = "Medium"
-        else:
-            weight = _pick(["Lightweight", "Medium"], seed)
-
-        rec_id = f"p{product_id}_m{material_id}_{variant}".replace(" ", "_").lower()
-        if rec_id in seen_ids:
-            rec_id = f"{rec_id}_{seed % 97}"
-        seen_ids.add(rec_id)
-
-        generated.append(
-            {
-                "id": rec_id,
-                "name": name,
-                "type": role,
-                "category": product.get("category", "General"),
-                "department": product.get("department", "Running"),
-                "division": product.get("division", "Performance"),
-                "supplier": _pick(suppliers, seed),
-                "sustainability": _sustainability_pct(material.get("sustainabilityGrade", "B"), seed),
-                "cost": f"${adjusted_cost:.2f} / {_unit_for_family(family)}",
-                "score": max(60, min(99, score)),
-                "strength": strength_by_focus.get(focus, _pick(["Stable", "Flexible", "Durable"], seed)),
-                "weight": weight,
-                "durability": durability_by_family.get(family, "Medium"),
-                "description": (
-                    f"{focus} setup for {product.get('name', 'footwear model')} "
-                    f"({product.get('season', 'SP26')}) tuned for {role.lower()} use."
-                ),
-            }
-        )
-
-    for link in links:
-        product = products_by_id.get(_safe_int(link.get("productId")))
-        material = materials_by_id.get(_safe_int(link.get("materialId")))
-        if not product or not material:
-            continue
-        role = str(link.get("role") or material.get("family") or "Material")
-        add_record(product, material, role, _safe_float(link.get("score"), 0.80), "linked")
-
-    idx = 0
-    product_count = len(products)
-    material_count = len(materials)
-    max_iterations = max(target_size * 6, 1000)
-    while len(generated) < target_size and idx < max_iterations:
-        product = products[(idx * 5 + (idx // 11)) % product_count]
-        material = materials[(idx * 13 + (idx // 7)) % material_count]
-        roles = _role_candidates_for_family(str(material.get("family", "Material")))
-
-        role = roles[(idx + _safe_int(product.get("id"))) % len(roles)]
-        score = 0.67 + (((idx * 19) + _safe_int(product.get("id")) + _safe_int(material.get("id"))) % 33) / 100.0
-        if product.get("division") == "Performance":
-            score += 0.05
-        elif product.get("division") in {"Outdoor", "Lifestyle"}:
-            score += 0.03
-        add_record(product, material, role, min(score, 0.99), f"syn{idx:05d}")
-
-        if len(generated) < target_size and idx % 3 == 0:
-            alt_role = roles[(idx + 1) % len(roles)]
-            add_record(product, material, alt_role, max(0.60, score - 0.07), f"alt{idx:05d}")
-
-        idx += 1
-
-    if not generated:
-        return FALLBACK_MATERIALS
-    return sorted(generated[:target_size], key=lambda x: x["score"], reverse=True)
+    return FALLBACK_MATERIALS
 
 
 MATERIALS = build_synthetic_materials()
@@ -537,6 +442,10 @@ def material_search_blob(item: dict) -> str:
     fields = [
         item.get("name", ""),
         item.get("type", ""),
+        item.get("product_name", ""),
+        item.get("product_code", ""),
+        item.get("target_consumer", ""),
+        item.get("season", ""),
         item.get("category", ""),
         item.get("department", ""),
         item.get("division", ""),
@@ -642,7 +551,7 @@ with st.sidebar:
     selected_department = st.selectbox("Department", departments, index=0, label_visibility="collapsed")
     st.markdown('<div class="field-label">Category</div>', unsafe_allow_html=True)
     selected_category = st.selectbox("Category", categories, index=0, label_visibility="collapsed")
-    min_score = st.slider("Min score", 60, 100, 80, label_visibility="collapsed")
+    min_score = st.slider("Min score", 60, 99, 80, label_visibility="collapsed")
     max_cards = st.slider("Max cards", 12, 180, 36, 12, label_visibility="collapsed")
     st.caption(f"Minimum Score: {min_score}")
     st.caption(f"Cards Shown: {max_cards}")
@@ -653,7 +562,23 @@ with st.sidebar:
     if st.session_state.get("rag_recommendations"):
         sidebar_pool_msg = f"{len(sidebar_pool)} RAG recommendations from latest question"
     else:
-        sidebar_pool_msg = f"{len(sidebar_pool)} synthetic recommendations generated from JSON source files"
+        combo_count = len(
+            {
+                (
+                    str(m.get("division", "")),
+                    str(m.get("department", "")),
+                    str(m.get("category", "")),
+                )
+                for m in sidebar_pool
+                if str(m.get("division", "")).strip()
+                and str(m.get("department", "")).strip()
+                and str(m.get("category", "")).strip()
+            }
+        )
+        sidebar_pool_msg = (
+            f"{len(sidebar_pool)} synthetic recommendations from JSON source files "
+            f"({combo_count} filter combinations)"
+        )
     st.markdown(
         f'<div class="section-box"><div class="section-title">All Recommendations</div><div class="section-sub">{sidebar_pool_msg}</div></div>',
         unsafe_allow_html=True,
@@ -712,11 +637,22 @@ filtered = [
     for m in source_materials
     if matches_filters(m, selected_division, selected_department, selected_category, effective_min_score)
 ]
+rag_filter_fallback = False
+if rag_materials and not filtered:
+    rag_filter_fallback = True
+    source_materials = MATERIALS
+    effective_min_score = min_score
+    filtered = [
+        m
+        for m in source_materials
+        if matches_filters(m, selected_division, selected_department, selected_category, effective_min_score)
+    ]
+
 query_text = st.session_state.get("assistant_query", "").strip()
 query_tokens = tokenize_query(query_text)
 relevance_by_id = {}
 
-if rag_materials:
+if rag_materials and not rag_filter_fallback:
     filtered.sort(key=lambda x: x.get("score", 0), reverse=True)
     for item in filtered:
         _, matched = query_relevance(item, query_tokens)
@@ -742,7 +678,11 @@ active_votes = st.session_state.backend_votes if backend_ok else st.session_stat
 approved = sum(1 for v in active_votes.values() if v == "approved")
 disapproved = sum(1 for v in active_votes.values() if v == "disapproved")
 pending = max(0, len(source_materials) - approved - disapproved)
-source_label = "RAG-driven material table" if rag_materials else "AI-powered material selector for footwear"
+source_label = (
+    "RAG-driven material table"
+    if rag_materials and not rag_filter_fallback
+    else "AI-powered material selector for footwear"
+)
 
 st.markdown(
     f"""
@@ -777,6 +717,9 @@ if st.session_state.vote_error and backend_ok:
 
 if st.session_state.last_vote_action:
     st.caption(st.session_state.last_vote_action)
+
+if rag_filter_fallback:
+    st.caption("No RAG rows matched the selected filters. Showing synthetic full-coverage dataset.")
 
 if st.session_state.assistant_answer:
     st.markdown('<div class="ai-panel"><div class="ai-title">AI Summary</div></div>', unsafe_allow_html=True)
@@ -821,15 +764,18 @@ else:
                         <span class="badge">recommended</span>
                     </div>
                     <div class="kv-grid">
-                        <div class="k">Supplier:</div><div class="v">{item['supplier']}</div>
-                        <div class="k">Sustainability:</div><div class="v">{item['sustainability']}</div>
-                        <div class="k">Cost:</div><div class="v">{item['cost']}</div>
-                        <div class="k">Strength:</div><div class="v">{item['strength']}</div>
-                        <div class="k">Weight:</div><div class="v">{item['weight']}</div>
-                        <div class="k">Durability:</div><div class="v">{item['durability']}</div>
+                        <div class="k">Product:</div><div class="v">{item.get('product_name', '-')}</div>
+                        <div class="k">Consumer:</div><div class="v">{item.get('target_consumer', '-')}</div>
+                        <div class="k">Season:</div><div class="v">{item.get('season', '-')}</div>
+                        <div class="k">Supplier:</div><div class="v">{item.get('supplier', '-')}</div>
+                        <div class="k">Sustainability:</div><div class="v">{item.get('sustainability', '-')}</div>
+                        <div class="k">Cost:</div><div class="v">{item.get('cost', '-')}</div>
+                        <div class="k">Strength:</div><div class="v">{item.get('strength', '-')}</div>
+                        <div class="k">Weight:</div><div class="v">{item.get('weight', '-')}</div>
+                        <div class="k">Durability:</div><div class="v">{item.get('durability', '-')}</div>
                         <div class="k">Status:</div><div class="v">{current_vote}</div>
                     </div>
-                    <div class="desc">{item['description']}</div>
+                    <div class="desc">{item.get('description', '')}</div>
                     <div class="desc">{rationale_line(item, matched_terms, query_text)}</div>
                 </div>
                 """,
@@ -875,6 +821,10 @@ else:
         table_rows.append(
             {
                 "ID": item.get("id", ""),
+                "Product": item.get("product_name", ""),
+                "Product Code": item.get("product_code", ""),
+                "Consumer": item.get("target_consumer", ""),
+                "Season": item.get("season", ""),
                 "Material": item.get("name", ""),
                 "Type": item.get("type", ""),
                 "Division": item.get("division", ""),

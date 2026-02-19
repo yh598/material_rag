@@ -11,13 +11,15 @@ This project provides:
 
 ## Generate a large synthetic dataset (optional)
 
-Generate 5,000 rows:
+Generate 20,000 rows with full filter-combination coverage:
 
 ```powershell
-python scripts/generate_large_synthetic_dataset.py --size 5000 --output synthetic_materials_large.json
+python scripts/generate_large_synthetic_dataset.py --size 20000 --min-per-combo 8 --output synthetic_materials_large.json
 ```
 
 If `synthetic_materials_large.json` exists in repo root, the UI loads it automatically.
+The generator expands records to product level and guarantees coverage for every
+`division x department x category` combination.
 
 ## One-command local startup (Windows PowerShell)
 
@@ -86,7 +88,8 @@ Used by backend retrieval:
 
 Optional for UI:
 - `BACKEND_URL` (defaults to `http://127.0.0.1:8000`)
-- `SYNTHETIC_TARGET_SIZE` (defaults to `3000` when generating in memory)
+- `SYNTHETIC_TARGET_SIZE` (defaults to `12000` when generating in memory)
+- `SYNTHETIC_MIN_PER_COMBO` (defaults to `6`; minimum rows per `division x department x category` combination)
 - `SYNTHETIC_DATA_PATH` (path to prebuilt synthetic JSON file)
 
 ## LLM fallback behavior

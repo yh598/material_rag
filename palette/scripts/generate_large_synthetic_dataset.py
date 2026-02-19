@@ -1,5 +1,6 @@
 import argparse
 import json
+from itertools import product
 from pathlib import Path
 
 
@@ -61,13 +62,72 @@ def unit_for_family(family: str) -> str:
     return by_family.get(family, "unit")
 
 
-def build_dataset(root: Path, target_size: int) -> list[dict]:
+def all_filter_values(products: list[dict]) -> tuple[list[str], list[str], list[str]]:
+    divisions = sorted({str(p.get("division", "")).strip() for p in products if str(p.get("division", "")).strip()})
+    departments = sorted({str(p.get("department", "")).strip() for p in products if str(p.get("department", "")).strip()})
+    categories = sorted({str(p.get("category", "")).strip() for p in products if str(p.get("category", "")).strip()})
+    return divisions, departments, categories
+
+
+def all_filter_combos(products: list[dict]) -> list[tuple[str, str, str]]:
+    divisions, departments, categories = all_filter_values(products)
+    return [(d, dep, cat) for d, dep, cat in product(divisions, departments, categories)]
+
+
+def rows_have_full_combo_coverage(rows: list[dict], combos: list[tuple[str, str, str]]) -> bool:
+    if not rows:
+        return False
+    if not combos:
+        return True
+
+    present = set()
+    for row in rows:
+        combo = (
+            str(row.get("division", "")).strip(),
+            str(row.get("department", "")).strip(),
+            str(row.get("category", "")).strip(),
+        )
+        if all(combo):
+            present.add(combo)
+
+    return all(combo in present for combo in combos)
+
+
+def _code_token(text: str, fallback: str) -> str:
+    cleaned = "".join(ch for ch in str(text).upper() if ch.isalnum())
+    if not cleaned:
+        return fallback
+    return cleaned[:4]
+
+
+def build_dataset(root: Path, target_size: int, min_per_combo: int = 6) -> list[dict]:
     materials = read_json(root / "materials.json")
     products = read_json(root / "products.json")
     links = read_json(root / "product_materials.json")
+    if not materials or not products:
+        return []
+
+    combos = all_filter_combos(products)
+    min_per_combo = max(1, safe_int(min_per_combo, 6))
+    target_size = max(300, safe_int(target_size, 3000), len(combos) * min_per_combo)
 
     products_by_id = {safe_int(p["id"]): p for p in products}
     materials_by_id = {safe_int(m["id"]): m for m in materials}
+
+    products_by_combo: dict[tuple[str, str, str], list[dict]] = {}
+    for p in products:
+        combo = (
+            str(p.get("division", "")).strip(),
+            str(p.get("department", "")).strip(),
+            str(p.get("category", "")).strip(),
+        )
+        if all(combo):
+            products_by_combo.setdefault(combo, []).append(p)
+
+    known_consumers = sorted(
+        {str(p.get("targetConsumer", "")).strip() for p in products if str(p.get("targetConsumer", "")).strip()}
+    ) or ["Unisex"]
+    known_seasons = sorted({str(p.get("season", "")).strip() for p in products if str(p.get("season", "")).strip()}) or ["SP25"]
 
     suppliers = [
         "AeroComposite",
@@ -116,8 +176,31 @@ def build_dataset(root: Path, target_size: int) -> list[dict]:
         "Lace": "Medium",
     }
 
-    generated = []
+    generated: list[dict] = []
     seen_ids = set()
+    combo_counts: dict[tuple[str, str, str], int] = {}
+    combo_peak_score: dict[tuple[str, str, str], int] = {}
+
+    def choose_product(combo: tuple[str, str, str], seed: int) -> dict:
+        candidates = products_by_combo.get(combo, [])
+        if candidates:
+            return candidates[seed % len(candidates)]
+
+        division, department, category = combo
+        synthetic_id = 900000 + (seed % 90000)
+        return {
+            "id": synthetic_id,
+            "code": (
+                f"SYN-{_code_token(division, 'DIV')}-"
+                f"{_code_token(department, 'DEP')}-{_code_token(category, 'CAT')}"
+            ),
+            "name": f"{division} {department} {category} Synthetic Product",
+            "division": division,
+            "department": department,
+            "category": category,
+            "targetConsumer": pick(known_consumers, seed),
+            "season": pick(known_seasons, seed + 7),
+        }
 
     def add_record(product: dict, material: dict, role: str, score_float: float, variant: str) -> None:
         product_id = safe_int(product.get("id"))
@@ -142,14 +225,26 @@ def build_dataset(root: Path, target_size: int) -> list[dict]:
         else:
             weight = pick(["Lightweight", "Medium"], seed)
 
+        division = str(product.get("division", "Performance"))
+        department = str(product.get("department", "Running"))
+        category = str(product.get("category", "General"))
+        combo = (division, department, category)
+        combo_counts[combo] = combo_counts.get(combo, 0) + 1
+        combo_peak_score[combo] = max(combo_peak_score.get(combo, 0), score)
+
         generated.append(
             {
                 "id": rec_id,
                 "name": material.get("name", "Synthetic Material"),
                 "type": role,
-                "category": product.get("category", "General"),
-                "department": product.get("department", "Running"),
-                "division": product.get("division", "Performance"),
+                "category": category,
+                "department": department,
+                "division": division,
+                "product_id": str(product.get("id", "")),
+                "product_code": str(product.get("code", "")),
+                "product_name": str(product.get("name", "")),
+                "target_consumer": str(product.get("targetConsumer", "")),
+                "season": str(product.get("season", "")),
                 "supplier": pick(suppliers, seed),
                 "sustainability": sustainability_pct(material.get("sustainabilityGrade", "B"), seed),
                 "cost": f"${adjusted_cost:.2f} / {unit_for_family(family)}",
@@ -172,20 +267,48 @@ def build_dataset(root: Path, target_size: int) -> list[dict]:
         role = str(link.get("role") or material.get("family") or "Material")
         add_record(product, material, role, safe_float(link.get("score"), 0.80), "linked")
 
-    idx = 0
-    product_count = len(products)
     material_count = len(materials)
-    max_iterations = max(target_size * 6, 1000)
+    if not combos:
+        combos = [("Performance", "Running", "General")]
+
+    for combo_idx, combo in enumerate(combos):
+        peak_seed = (combo_idx + 1) * 97
+        if combo_peak_score.get(combo, 0) < 99:
+            product = choose_product(combo, peak_seed)
+            material = materials[(peak_seed * 7) % material_count]
+            roles = role_candidates(str(material.get("family", "Material")))
+            role = roles[peak_seed % len(roles)]
+            add_record(product, material, role, 0.99, f"combopeak{combo_idx:03d}")
+
+        while combo_counts.get(combo, 0) < min_per_combo:
+            seq = combo_counts.get(combo, 0)
+            seed = (combo_idx * 131) + (seq * 17) + 11
+            product = choose_product(combo, seed)
+            material = materials[(seed * 13 + seq * 3) % material_count]
+            roles = role_candidates(str(material.get("family", "Material")))
+            role = roles[(seed + seq) % len(roles)]
+
+            score = 0.72 + ((seed + seq * 11) % 24) / 100.0
+            if combo[0] == "Performance":
+                score += 0.03
+            elif combo[0] in {"Outdoor", "Lifestyle"}:
+                score += 0.02
+            add_record(product, material, role, min(score, 0.97), f"combofill{combo_idx:03d}_{seq:02d}")
+
+    idx = 0
+    max_iterations = max(target_size * 8, 2400)
+    combo_count = len(combos)
     while len(generated) < target_size and idx < max_iterations:
-        product = products[(idx * 5 + (idx // 11)) % product_count]
+        combo = combos[(idx * 7 + (idx // 9)) % combo_count]
+        product = choose_product(combo, idx + 17)
         material = materials[(idx * 13 + (idx // 7)) % material_count]
         roles = role_candidates(str(material.get("family", "Material")))
         role = roles[(idx + safe_int(product.get("id"))) % len(roles)]
 
         score = 0.67 + (((idx * 19) + safe_int(product.get("id")) + safe_int(material.get("id"))) % 33) / 100.0
-        if product.get("division") == "Performance":
+        if combo[0] == "Performance":
             score += 0.05
-        elif product.get("division") in {"Outdoor", "Lifestyle"}:
+        elif combo[0] in {"Outdoor", "Lifestyle"}:
             score += 0.03
         add_record(product, material, role, min(score, 0.99), f"syn{idx:05d}")
 
@@ -200,7 +323,13 @@ def build_dataset(root: Path, target_size: int) -> list[dict]:
 
 def main():
     parser = argparse.ArgumentParser(description="Generate large synthetic material recommendation dataset.")
-    parser.add_argument("--size", type=int, default=5000, help="Number of synthetic rows to generate")
+    parser.add_argument("--size", type=int, default=12000, help="Number of synthetic rows to generate")
+    parser.add_argument(
+        "--min-per-combo",
+        type=int,
+        default=6,
+        help="Minimum number of rows for each division/department/category combination",
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -210,7 +339,7 @@ def main():
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parent.parent
-    rows = build_dataset(root=root, target_size=max(300, args.size))
+    rows = build_dataset(root=root, target_size=max(300, args.size), min_per_combo=max(1, args.min_per_combo))
     output_path = args.output
     if not output_path.is_absolute():
         output_path = root / output_path
@@ -218,7 +347,11 @@ def main():
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(rows, f, indent=2)
 
+    products = read_json(root / "products.json")
+    combos = all_filter_combos(products)
+    covered = rows_have_full_combo_coverage(rows, combos)
     print(f"Generated {len(rows)} rows -> {output_path}")
+    print(f"Filter combinations covered: {covered} ({len(combos)} combinations)")
 
 
 if __name__ == "__main__":
