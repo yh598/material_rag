@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: ta-rmr-palette-backend
+    runtime: python
+    rootDir: palette
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: PALETTE_CSV_PATH
+        value: apparel_material_cluster_sample.csv
+      - key: AI_GATEWAY_BASE_URL
+        sync: false
+      - key: AI_GATEWAY_API_KEY
+        sync: false
+      - key: AI_GATEWAY_MODEL
+        value: gemini-2.5-flash
+
+  - type: web
+    name: ta-rmr-palette-ui
+    runtime: python
+    rootDir: palette
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run ui/app.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: SYNTHETIC_DATA_PATH
+        value: synthetic_materials_large.json
+      - key: SYNTHETIC_TARGET_SIZE
+        value: "3000"
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: ta-rmr-palette-backend
+          property: hostport
