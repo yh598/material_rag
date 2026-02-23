@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from pathlib import Path
 from threading import Lock
 
@@ -70,15 +71,15 @@ def _fallback_answer_from_hits(question: str, hits: list[dict]) -> str:
     top = hits[: min(3, len(hits))]
     lines = [
         "LLM generation is unavailable, so this is a retrieval-only recommendation summary.",
-        f"Question: {question}",
+        f"Question: {_sanitize_text(question)}",
         "",
         "Top matching rows:",
     ]
     for h in top:
         lines.append(
-            f"- row_id={h['row_id']} | score={h['score']:.4f} | {h.get('material', 'Unknown material')}"
+            f"- row_id={h['row_id']} | score={h['score']:.4f} | {_sanitize_text(h.get('material', 'Unknown material'))}"
         )
-        snippet = h.get("snippet", "").strip()
+        snippet = _sanitize_text(h.get("snippet", "")).strip()
         if snippet:
             lines.append(f"  {snippet}")
 
@@ -101,8 +102,16 @@ def _to_float(value: str | float | int | None) -> float | None:
         return None
 
 
+def _sanitize_text(value: object) -> str:
+    text = str(value or "")
+    text = re.sub(r"\bnike\b", "Brand", text, flags=re.IGNORECASE)
+    text = text.replace("__", " ").replace('""', '"')
+    text = re.sub(r"\s{2,}", " ", text)
+    return text.strip()
+
+
 def _clean_field(value: object) -> str:
-    text = str(value or "").strip()
+    text = _sanitize_text(value).strip()
     if not text:
         return ""
     if text.lower() in {"null", "none", "nan", "na", "n/a"}:
@@ -193,7 +202,7 @@ def _recommendation_from_hit(hit: dict) -> dict:
 
     name = (
         _pick_field(fields, "MATL_ITM_DESC", "SUPPLEMENTAL_MATERIAL_NM", "MATERIAL_FAMILY_NM")
-        or _clean_field(hit.get("material"))
+        or _sanitize_text(hit.get("material"))
         or "Material"
     )
     type_name = (
@@ -204,7 +213,7 @@ def _recommendation_from_hit(hit: dict) -> dict:
     sustainability = _pick_field(fields, "SUSTAINABILITY_RANKING", default="Unranked")
     description = (
         _pick_field(fields, "MATERIAL_INTENT_DESCRIPTION", "MATERIAL_BENEFITS_NM", "MATL_COMMENT")
-        or _clean_field(hit.get("snippet"))
+        or _sanitize_text(hit.get("snippet"))
     )
     product_name = _pick_field(
         fields,
@@ -234,22 +243,22 @@ def _recommendation_from_hit(hit: dict) -> dict:
         "id": f"row_{row_id}_{rec_key}",
         "row_id": row_id,
         "score": int(round(float(hit.get("score", 0.0)) * 100)),
-        "name": str(name)[:180],
-        "type": str(type_name)[:120],
-        "product_name": str(product_name)[:180],
-        "product_code": str(product_code)[:80],
-        "target_consumer": str(target_consumer)[:80],
-        "season": str(season)[:60],
+        "name": _sanitize_text(name)[:180],
+        "type": _sanitize_text(type_name)[:120],
+        "product_name": _sanitize_text(product_name)[:180],
+        "product_code": _sanitize_text(product_code)[:80],
+        "target_consumer": _sanitize_text(target_consumer)[:80],
+        "season": _sanitize_text(season)[:60],
         "division": _pick_field(fields, "SEGMENT", default="Performance"),
         "department": _pick_field(fields, "DIMENSION", "FOP", default="Running"),
         "category": _pick_field(fields, "SILHOUETTE_TYPE_DESCRIPTION", "END_USE_NM", default="General"),
-        "supplier": str(supplier)[:180],
-        "sustainability": str(sustainability)[:80],
-        "cost": _format_cost(fields),
+        "supplier": _sanitize_text(supplier)[:180],
+        "sustainability": _sanitize_text(sustainability)[:80],
+        "cost": _sanitize_text(_format_cost(fields)),
         "strength": _strength_bucket(fields),
         "weight": _weight_bucket(fields),
         "durability": _durability_bucket(fields),
-        "description": str(description)[:320],
+        "description": _sanitize_text(description)[:320],
         "source": "rag",
     }
 
@@ -376,18 +385,23 @@ def chat(req: ChatRequest):
         citations.append({
             "row_id": int(h["row_id"]),
             "score": float(h["score"]),
-            "material": h.get("material", ""),
-            "snippet": h.get("snippet", ""),
+            "material": _sanitize_text(h.get("material", "")),
+            "snippet": _sanitize_text(h.get("snippet", "")),
         })
         recommendations.append(_recommendation_from_hit(h))
         context_blocks.append(
-            f"[row_id={h['row_id']}] {h.get('material','')}\n{h.get('fulltext','')}"
+            f"[row_id={h['row_id']}] {_sanitize_text(h.get('material',''))}\n{_sanitize_text(h.get('fulltext',''))}"
         )
 
     system = (
-        "You are an apparel materials assistant. Use ONLY the provided context to answer.\n"
-        "If the answer isn't in the context, say you don't know and suggest what fields to search.\n"
-        "When you cite, refer to row_id(s)."
+        "You are a materials recommendation assistant.\n"
+        "Use ONLY the provided context.\n"
+        "Write concise, intuitive answers in plain business language.\n"
+        "Structure as:\n"
+        "1) Direct recommendation (1-2 sentences)\n"
+        "2) Why these materials (2-4 bullets with concrete fields)\n"
+        "3) Evidence: cite row_id values.\n"
+        "If context is insufficient, say exactly what is missing and propose the next best query."
     )
     user = (
         f"Question: {req.message}\n\n"
