@@ -434,6 +434,7 @@ def normalize_backend_url(raw_url: str) -> str:
     return f"http://{value}"
 
 
+@st.cache_data(ttl=5, show_spinner=False)
 def fetch_votes(url: str) -> tuple[dict, dict, str]:
     try:
         resp = requests.get(f"{url.rstrip('/')}/votes", timeout=6)
@@ -453,6 +454,7 @@ def submit_vote(url: str, item_id: str, vote: str) -> tuple[dict, dict, str]:
         )
         resp.raise_for_status()
         data = resp.json()
+        fetch_votes.clear()
         return data.get("votes", {}), data.get("counts", {}), ""
     except Exception as exc:
         return {}, {}, f"Vote update failed: {exc}"
