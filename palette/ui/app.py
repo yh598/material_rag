@@ -520,6 +520,11 @@ def rationale_line(item: dict, matched_terms: list[str], query_text: str) -> str
 
 def run_assistant_query(prompt: str, backend_ok: bool, backend_status: str, backend_url: str, top_k: int) -> None:
     st.session_state.assistant_query = prompt
+    if not backend_ok:
+        st.session_state.assistant_error = backend_status or "Backend unavailable."
+        st.session_state.assistant_mode = "error"
+        return
+
     answer, citations, recommendations, error, mode = query_backend(backend_url, prompt, top_k)
     if error:
         # Preserve prior successful state on transient backend failures.
