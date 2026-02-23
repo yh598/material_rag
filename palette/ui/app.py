@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import time
 from pathlib import Path
 
 import requests
@@ -374,13 +375,44 @@ st.markdown(
 
 
 def query_backend(url: str, prompt: str, top_k: int) -> tuple[str, list[dict], list[dict], str, str]:
-    try:
-        resp = requests.post(
-            f"{url.rstrip('/')}/chat",
-            json={"message": prompt, "top_k": int(top_k)},
-            timeout=120,
-        )
-        resp.raise_for_status()
+    endpoint = f"{url.rstrip('/')}/chat"
+    payload = {"message": prompt, "top_k": int(top_k)}
+    retry_statuses = {429, 502, 503, 504}
+    max_attempts = 4
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = requests.post(endpoint, json=payload, timeout=120)
+        except requests.exceptions.RequestException as exc:
+            if attempt < max_attempts:
+                time.sleep(min(8.0, 1.2 * (2 ** (attempt - 1))))
+                continue
+            return "", [], [], f"Backend request failed: {exc}", "error"
+
+        if resp.status_code in retry_statuses:
+            retry_after = _safe_float(resp.headers.get("Retry-After"), 0.0)
+            wait_seconds = retry_after if retry_after > 0 else min(8.0, 1.2 * (2 ** (attempt - 1)))
+            if attempt < max_attempts:
+                time.sleep(wait_seconds)
+                continue
+            detail = ""
+            try:
+                detail = (resp.text or "").strip()
+            except Exception:
+                detail = ""
+            msg = (
+                f"Backend is rate-limiting requests (HTTP {resp.status_code}) "
+                f"after {max_attempts} retries. Please wait 20-40 seconds and try again."
+            )
+            if detail:
+                msg = f"{msg} Detail: {detail[:180]}"
+            return "", [], [], msg, "error"
+
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            return "", [], [], f"Backend request failed: {exc}", "error"
+
         data = resp.json()
         return (
             data.get("answer", ""),
@@ -389,8 +421,8 @@ def query_backend(url: str, prompt: str, top_k: int) -> tuple[str, list[dict], l
             "",
             data.get("mode", "llm"),
         )
-    except Exception as exc:
-        return "", [], [], f"Backend request failed: {exc}", "error"
+
+    return "", [], [], "Backend request failed: retry attempts exhausted.", "error"
 
 
 def normalize_backend_url(raw_url: str) -> str:
@@ -489,10 +521,16 @@ def rationale_line(item: dict, matched_terms: list[str], query_text: str) -> str
 def run_assistant_query(prompt: str, backend_ok: bool, backend_status: str, backend_url: str, top_k: int) -> None:
     st.session_state.assistant_query = prompt
     answer, citations, recommendations, error, mode = query_backend(backend_url, prompt, top_k)
+    if error:
+        # Preserve prior successful state on transient backend failures.
+        st.session_state.assistant_error = error
+        st.session_state.assistant_mode = mode
+        return
+
     st.session_state.assistant_answer = answer
     st.session_state.assistant_citations = citations
     st.session_state.rag_recommendations = recommendations
-    st.session_state.assistant_error = error
+    st.session_state.assistant_error = ""
     st.session_state.assistant_mode = mode
 
 
